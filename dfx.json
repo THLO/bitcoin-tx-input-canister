@@ -1,0 +1,17 @@
+{
+  "canisters": {
+    "bitcoin_tx_input_canister": {
+      "candid": "bitcoin_tx_input_canister.did",
+      "package": "bitcoin_tx_input_canister",
+      "type": "rust"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
