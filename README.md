@@ -8,6 +8,7 @@ It exposes the following endpoint:
 ```bash
 type tx_id = text;
 type bitcoin_address = text;
+
 "get_inputs": (tx_id) -> (vec bitcoin_address);
 ```
 
