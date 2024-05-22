@@ -1,7 +1,9 @@
-use ic_cdk::api::management_canister::http_request::{
-    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs, TransformContext, TransformFunc};
-use bitcoin::{consensus::Decodable, Transaction, Address, params::Params};
+use bitcoin::{consensus::Decodable, params::Params, Address, Transaction};
 use futures::future::try_join_all;
+use ic_cdk::api::management_canister::http_request::{
+    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs,
+    TransformContext, TransformFunc,
+};
 
 #[derive(Debug, Clone)]
 struct BitcoinTxError;
@@ -12,7 +14,7 @@ struct BitcoinTxError;
 async fn get_inputs(tx_id: String) -> Vec<String> {
     match get_inputs_internal(tx_id).await {
         Ok(inputs) => inputs,
-        Err(_) => vec![]
+        Err(_) => vec![],
     }
 }
 
@@ -31,7 +33,8 @@ async fn get_inputs_internal(tx_id: String) -> Result<Vec<String>, BitcoinTxErro
 
     for (index, input_tx) in input_txs.iter().enumerate() {
         let output = &input_tx.output[vouts[index]];
-        let address = Address::from_script(&output.script_pubkey, Params::MAINNET).map_err(|_| BitcoinTxError)?;
+        let address = Address::from_script(&output.script_pubkey, Params::MAINNET)
+            .map_err(|_| BitcoinTxError)?;
         addresses.push(address.to_string());
     }
 
@@ -65,10 +68,11 @@ async fn get_tx(tx_id: String) -> Result<Transaction, BitcoinTxError> {
         }),
         headers: request_headers,
     };
-     let cycles = 49_140_000 + 1024 * 5_200 + 10_400 * 400 * 1024;  // 1 KiB request, 400 KiB response
-     match http_request(request, cycles).await {
+    let cycles = 49_140_000 + 1024 * 5_200 + 10_400 * 400 * 1024; // 1 KiB request, 400 KiB response
+    match http_request(request, cycles).await {
         Ok((response,)) => {
-            let tx = Transaction::consensus_decode(&mut response.body.as_slice()).map_err(|_| BitcoinTxError)?;
+            let tx = Transaction::consensus_decode(&mut response.body.as_slice())
+                .map_err(|_| BitcoinTxError)?;
             // Verify the correctness of the transaction by recomputing the transaction ID.
             if tx.compute_txid().to_string() != *tx_id {
                 return Err(BitcoinTxError);
@@ -84,10 +88,9 @@ async fn get_tx(tx_id: String) -> Result<Transaction, BitcoinTxError> {
 
 #[ic_cdk::query]
 fn transform(raw: TransformArgs) -> HttpResponse {
-    let res = HttpResponse {
+    HttpResponse {
         status: raw.response.status.clone(),
         body: raw.response.body.clone(),
         headers: vec![],
-    };
-    res
+    }
 }
