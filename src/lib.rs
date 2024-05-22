@@ -1,6 +1,7 @@
 use ic_cdk::api::management_canister::http_request::{
     http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs, TransformContext, TransformFunc};
 use bitcoin::{consensus::Decodable, Transaction, Address, params::Params};
+use futures::future::try_join_all;
 
 #[derive(Debug, Clone)]
 struct BitcoinTxError;
@@ -16,14 +17,20 @@ async fn get_inputs(tx_id: String) -> Vec<String> {
 }
 
 async fn get_inputs_internal(tx_id: String) -> Result<Vec<String>, BitcoinTxError> {
-    let tx = get_tx(&tx_id).await?;
+    let tx = get_tx(tx_id).await?;
 
     let mut addresses = vec![];
+    let mut futures = vec![];
+    let mut vouts = vec![];
 
     for input in tx.input.iter() {
-        let input_tx_id = input.previous_output.txid;
-        let input_tx = get_tx(&input_tx_id.to_string()).await?;
-        let output = &input_tx.output[input.previous_output.vout as usize];
+        vouts.push(input.previous_output.vout as usize);
+        futures.push(get_tx(input.previous_output.txid.to_string()));
+    }
+    let input_txs = try_join_all(futures).await?;
+
+    for (index, input_tx) in input_txs.iter().enumerate() {
+        let output = &input_tx.output[vouts[index]];
         let address = Address::from_script(&output.script_pubkey, Params::MAINNET).map_err(|_| BitcoinTxError)?;
         addresses.push(address.to_string());
     }
@@ -31,7 +38,7 @@ async fn get_inputs_internal(tx_id: String) -> Result<Vec<String>, BitcoinTxErro
     Ok(addresses)
 }
 
-async fn get_tx(tx_id: &String) -> Result<Transaction, BitcoinTxError> {
+async fn get_tx(tx_id: String) -> Result<Transaction, BitcoinTxError> {
     let host = "btcscan.org";
     let url = format!("https://{}/api/tx/{}/raw", host, tx_id);
     let request_headers = vec![

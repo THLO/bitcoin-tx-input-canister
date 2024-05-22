@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 candid = "0.10"
 ic-cdk = "0.13"
 bitcoin = "0.32.0"
+futures = "0.3"
