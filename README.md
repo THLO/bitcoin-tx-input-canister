@@ -12,5 +12,5 @@ type bitcoin_address = text;
 ```
 
 > [!CAUTION]  
-> This is merely a proof of concept. The code is not ready for use in production.
-> In particular, the canister depends on the availability of the [Blockstream API](https://github.com/Blockstream/esplora/blob/master/API.md), i.e., there is a single point of failure.
+> This is merely a proof of concept. The code is **not ready for use in production**.
+> In particular, the canister depends on the availability of the [Btcscan.org HTTP API](https://github.com/cornucopiaa/btcscan-org/blob/master/API.md), i.e., there is a single point of failure. Moreover, the error handling is insufficient for use in production systems.
