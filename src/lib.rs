@@ -1,5 +1,5 @@
 use ic_cdk::api::management_canister::http_request::{
-    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod};
+    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs, TransformContext, TransformFunc};
 use bitcoin::{consensus::Decodable, Transaction, Address, params::Params};
 
 #[derive(Debug, Clone)]
@@ -32,7 +32,7 @@ async fn get_inputs_internal(tx_id: String) -> Result<Vec<String>, BitcoinTxErro
 }
 
 async fn get_tx(tx_id: &String) -> Result<Transaction, BitcoinTxError> {
-    let host = "blockstream.info";
+    let host = "btcscan.org";
     let url = format!("https://{}/api/tx/{}/raw", host, tx_id);
     let request_headers = vec![
         HttpHeader {
@@ -49,7 +49,13 @@ async fn get_tx(tx_id: &String) -> Result<Transaction, BitcoinTxError> {
         method: HttpMethod::GET,
         body: None,
         max_response_bytes: Some(400 * 1024), // 400 KiB
-        transform: None,
+        transform: Some(TransformContext {
+            function: TransformFunc(candid::Func {
+                principal: ic_cdk::api::id(),
+                method: "transform".to_string(),
+            }),
+            context: vec![],
+        }),
         headers: request_headers,
     };
      let cycles = 49_140_000 + 1024 * 5_200 + 10_400 * 400 * 1024;  // 1 KiB request, 400 KiB response
@@ -67,4 +73,14 @@ async fn get_tx(tx_id: &String) -> Result<Transaction, BitcoinTxError> {
             Err(BitcoinTxError)
         }
     }
+}
+
+#[ic_cdk::query]
+fn transform(raw: TransformArgs) -> HttpResponse {
+    let res = HttpResponse {
+        status: raw.response.status.clone(),
+        body: raw.response.body.clone(),
+        headers: vec![],
+    };
+    res
 }
